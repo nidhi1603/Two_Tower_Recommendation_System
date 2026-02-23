@@ -1,0 +1,11 @@
+Matrix Factorization Baseline (BPR)
+=====================================
+Embedding dim: 64
+Best Epoch:    20
+HR@10:         0.6755
+NDCG@10:       0.4516
+Dataset:       Amazon Video Games 2023
+Users:         98,906
+Items:         26,354
+Train:         659,693
+Sparsity:      0.9997
