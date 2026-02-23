@@ -1,0 +1,1 @@
+{"n_users": 98906, "n_items": 26354, "n_user_feats": 8, "n_item_feats": 15, "text_dim": 384, "results": {"mf_hr10": 0.6755, "mf_hr10_full": 0.042, "tt_hr10": 0.6395, "tt_hr10_full": 0.027, "lgcn_hr10": 0.7285, "lgcn_hr10_full": 0.044}, "faiss_latency": {"flat": 310, "ivf": 35, "hnsw": 29}}
