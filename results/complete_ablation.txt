@@ -1,0 +1,14 @@
+Two-Tower Ablation (11 Variants) | Sampled eval (100 neg)
+
+v1   InfoNCE baseline             0.6195  baseline
+v2   +MSE distillation            0.6210  gradient drowned
+v3   +cosine distillation         0.6195  structural blindness
+v4   +title text                  0.6355  +0.016 (content signal)
+v4b  +text batch=1024             0.6280  too many negatives
+v4c  +text lr=3e-4                0.6290  no gain
+v4B  BPR+hard neg                 0.1520  collapsed
+v5   +text +GRU                   0.6395  BEST
+v5b  +rich text +GRU              0.6385  noisy descriptions
+v5c  +LightGCN init               0.6330  scrambled by MLP
+v6   +curriculum neg               0.6355  hard negs hurt
+v7   +text +GRU +CLIP images      0.6355  images no help
