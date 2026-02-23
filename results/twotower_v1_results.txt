@@ -1,0 +1,13 @@
+Two-Tower v1 (InfoNCE, temp=0.2)
+==================================
+Dim:         64
+Hidden:      128
+Temperature: 0.2
+Batch size:  256
+Best Epoch:  11
+HR@10:       0.6195
+NDCG@10:     0.4000
+
+Issue: Early stopping at epoch 14
+Cause: In-batch negatives insufficient at batch=256
+Next:  Knowledge distillation from LightGCN
