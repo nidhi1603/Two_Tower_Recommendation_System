@@ -2,10 +2,10 @@ LightGCN Results
 =================
 Layers:      3
 Dim:         64
-Best Epoch:  27
-HR@10:       0.7285
-NDCG@10:     0.4940
+Best Epoch:  20
+HR@10:       0.7205
+NDCG@10:     0.4788
 
 vs MF Baseline:
-  HR@10:   +0.0530 (+7.8%)
-  NDCG@10: +0.0424 (+9.4%)
+  HR@10:   +0.0450 (+6.7%)
+  NDCG@10: +0.0272 (+6.0%)
