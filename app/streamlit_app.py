@@ -18,15 +18,15 @@ from torch.nn.utils.rnn import pack_padded_sequence
 #                                        ^^^^^^^^^^^^^^^^ this part
 # ============================================================
 DRIVE_FILES = {
-    "tt_user_embs.npy":         "YOUR_FILE_ID_HERE",
-    "tt_item_embs.npy":         "YOUR_FILE_ID_HERE",
-    "mf_user_embs.npy":         "YOUR_FILE_ID_HERE",
-    "mf_item_embs.npy":         "YOUR_FILE_ID_HERE",
-    "text_embs.npy":            "YOUR_FILE_ID_HERE",
-    "item_info.json":           "YOUR_FILE_ID_HERE",
-    "user_history.pkl":         "YOUR_FILE_ID_HERE",
-    "tt_cold_start_weights.pt": "YOUR_FILE_ID_HERE",
-    "stats.json":               "YOUR_FILE_ID_HERE",
+    "tt_user_embs.npy":         "1NcZJZNI3JNd4gmpNsOEaM8NkmaLWsk3N",
+    "tt_item_embs.npy":         "1uHA2UoTkDxijR8lKgw8ACTWFXayc2jSx",
+    "mf_user_embs.npy":         "1ilhAQnLmH65N0DKjCSIG1f2xO7wAX8SZ",
+    "mf_item_embs.npy":         "1yy1xOrvBlf7gzeRpy6wd7QZj7hM7KulM",
+    "text_embs.npy":            "14_dyDwcV40J8ZaVB6ogZXysnXSW72smM",
+    "item_info.json":           "1MtRFoznpLMPZV7DWTmNtKWQ4znbUSMOD",
+    "user_history.pkl":         "14z-VcI0r7ZcU9WqJY7co11MY3pVseziu",
+    "tt_cold_start_weights.pt": "1PgUoB8U1d9K05OdCsAiEO1TCEjObfdFH",
+    "stats.json":               "17To2CT7k2wINECILMqd7O-QWIQEPZT49",
 }
 
 DATA_DIR = "data"
