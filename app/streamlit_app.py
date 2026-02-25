@@ -10,12 +10,12 @@ st.set_page_config(page_title="Two-Tower Recommender", page_icon="🎮", layout=
 # ── Load data ─────────────────────────────────────────────
 @st.cache_resource
 def load_data():
-    DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
-    tt_user = np.load(f"{DATA_DIR}/tt_user_embs.npy").astype(np.float32)
-    tt_item = np.load(f"{DATA_DIR}/tt_item_embs.npy").astype(np.float32)
-    mf_user = np.load(f"{DATA_DIR}/mf_user_embs.npy").astype(np.float32)
-    mf_item = np.load(f"{DATA_DIR}/mf_item_embs.npy").astype(np.float32)
-    text_embs = np.load(f"{DATA_DIR}/text_embs.npy").astype(np.float32)
+    DATA_DIR = os.environ.get("DATA_DIR", "streamlit_data")
+    tt_user = np.load(f"{DATA_DIR}/tt_user_embs.npy")
+    tt_item = np.load(f"{DATA_DIR}/tt_item_embs.npy")
+    mf_user = np.load(f"{DATA_DIR}/mf_user_embs.npy")
+    mf_item = np.load(f"{DATA_DIR}/mf_item_embs.npy")
+    text_embs = np.load(f"{DATA_DIR}/text_embs.npy")
     with open(f"{DATA_DIR}/item_info.json") as f:
         item_info = {int(k): v for k, v in json.load(f).items()}
     with open(f"{DATA_DIR}/user_history.pkl", "rb") as f:
