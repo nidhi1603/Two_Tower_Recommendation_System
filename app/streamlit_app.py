@@ -266,13 +266,12 @@ with demo_left:
 
     user_id = st.number_input("User ID", min_value=0,
                                max_value=s["n_users"] - 1, value=100)
-    model_choice = st.selectbox("Model", ["Two-Tower v5", "Matrix Factorization", "Both"])
 
     history     = data["user_history"].get(user_id, [])
     history_set = set(history)
 
     if history:
-        st.caption(f"Purchase history: {len(history)} items — showing last 5")
+        st.caption(f"Purchase history: {len(history)} items - showing last 5")
         for item_idx in history[-5:]:
             title, cat, rating, price = get_item_display(item_idx, data["item_info"])
             st.markdown(f"- {title}{rating}{price}")
@@ -281,21 +280,59 @@ with demo_left:
 
     st.markdown("")
 
-    if model_choice in ["Two-Tower v5", "Both"]:
-        st.caption("Two-Tower v5 recommendations")
-        recs = recommend(data["tt_user"][user_id], data["tt_index"], history_set)
-        for rank, (idx, score) in enumerate(recs, 1):
-            title, cat, rating, price = get_item_display(idx, data["item_info"])
-            match_pct = int(score * 100)
-            st.markdown(f"**{rank}.** {title}{rating}{price} — `{match_pct}% match`")
+    tt_recs = recommend(data["tt_user"][user_id], data["tt_index"], history_set)
+    mf_recs = recommend(data["mf_user"][user_id], data["mf_index"], history_set)
+    tt_items = [idx for idx, _ in tt_recs]
+    mf_items = [idx for idx, _ in mf_recs]
+    overlap  = set(tt_items) & set(mf_items)
+    n_overlap = len(overlap)
 
-    if model_choice in ["Matrix Factorization", "Both"]:
-        st.caption("Matrix Factorization recommendations")
-        recs = recommend(data["mf_user"][user_id], data["mf_index"], history_set)
-        for rank, (idx, score) in enumerate(recs, 1):
+    tt_col, mf_col = st.columns(2, gap="medium")
+
+    with tt_col:
+        st.caption(f"Two-Tower v5  -  {n_overlap}/10 items overlap with MF")
+        for rank, (idx, score) in enumerate(tt_recs, 1):
             title, cat, rating, price = get_item_display(idx, data["item_info"])
             match_pct = int(score * 100)
-            st.markdown(f"**{rank}.** {title}{rating}{price} — `{match_pct}% match`")
+            tag = "  `both`" if idx in overlap else ""
+            st.markdown(f"**{rank}.** {title}{rating}{price} - `{match_pct}%`{tag}")
+
+    with mf_col:
+        st.caption(f"Matrix Factorization  -  {n_overlap}/10 items overlap with TT")
+        for rank, (idx, score) in enumerate(mf_recs, 1):
+            title, cat, rating, price = get_item_display(idx, data["item_info"])
+            match_pct = int(score * 100)
+            tag = "  `both`" if idx in overlap else ""
+            st.markdown(f"**{rank}.** {title}{rating}{price} - `{match_pct}%`{tag}")
+
+    with st.expander("Why do Two-Tower and MF recommend different items?"):
+        exp_text = f"""
+**They learn different representations of the same user.**
+
+| | Two-Tower v5 | Matrix Factorization |
+|---|---|---|
+| What it learns | ID + GRU + text + features | ID co-occurrence only |
+| Ranking signal | Cosine sim in 64-dim space | Dot product of ID embeddings |
+| Overlap | {n_overlap}/10 items | {n_overlap}/10 items |
+
+**Why {n_overlap} items appear in both lists:**
+These are the high-confidence recommendations - items so strongly correlated
+with this user history that both models agree regardless of method.
+
+**Why the other {10 - n_overlap} differ:**
+Two-Tower finds semantically similar items (same genre, similar description)
+even if users with identical IDs never bought them together.
+MF finds items that co-occur in purchase histories across many users,
+regardless of what the items actually are.
+
+**Which is better?**
+On this dataset, MF beats Two-Tower by 3.5% HR@10 for known users.
+At 99.97% sparsity, co-occurrence signal is extremely strong for items
+that DO appear together. Two-Tower content features add noise in this regime.
+But the moment a new user arrives, MF outputs random recommendations.
+Two-Tower still works.
+        """
+        st.markdown(exp_text)
 
 with demo_right:
     st.markdown('<div class="section-header">Live Demo — Cold-Start (New User)</div>', unsafe_allow_html=True)
