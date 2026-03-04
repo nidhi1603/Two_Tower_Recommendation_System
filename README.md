@@ -1,11 +1,11 @@
 # Two-Tower Recommendation System
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-ff4b4b?style=for-the-badge&logo=streamlit)](https://sdnsjdfd.streamlit.app/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-ff4b4b?style=for-the-badge&logo=streamlit)](https://two-tower-rec-sys.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.10-blue?style=flat-square&logo=python)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0-orange?style=flat-square&logo=pytorch)](https://pytorch.org)
 [![Dataset](https://img.shields.io/badge/Dataset-Amazon%20Video%20Games%202023-yellow?style=flat-square)](https://amazon-reviews-2023.github.io)
 
-> **Live demo →** [your-app-url.streamlit.app](https://sdnsjdfd.streamlit.app)  
+> **Live demo →** [your-app-url.streamlit.app](https://two-tower-rec-sys.streamlit.app)  
 > Try the cold-start demo: pick 3 games you like and get personalized recommendations instantly — no account needed.
 
 ---
