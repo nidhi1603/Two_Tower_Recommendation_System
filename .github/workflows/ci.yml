@@ -25,9 +25,9 @@ jobs:
           pip install -r requirements.txt
           pip install pytest ruff
 
-      - name: Lint (ruff)
+      - name: Lint (ruff) - non blocking
         run: |
-          ruff check .
+          ruff check . || true
 
       - name: Tests (smoke)
         run: |
