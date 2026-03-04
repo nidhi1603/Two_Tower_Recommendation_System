@@ -5,7 +5,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0-orange?style=flat-square&logo=pytorch)](https://pytorch.org)
 [![Dataset](https://img.shields.io/badge/Dataset-Amazon%20Video%20Games%202023-yellow?style=flat-square)](https://amazon-reviews-2023.github.io)
 
-> **Live demo →** [your-app-url.streamlit.app](https://YOUR_APP_URL.streamlit.app)  
+> **Live demo →** [your-app-url.streamlit.app](https://sdnsjdfd.streamlit.app)  
 > Try the cold-start demo: pick 3 games you like and get personalized recommendations instantly — no account needed.
 
 ---
