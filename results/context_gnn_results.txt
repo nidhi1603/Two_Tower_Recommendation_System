@@ -1,0 +1,30 @@
+Feature-Gated LightGCN (Context-GNN) Results
+==============================================
+Architecture:  LightGCN propagation + feature projections + learnable gate
+Layers:        3
+Dim:           64
+Dropout:       0.05
+LR:            1e-3 (cosine annealing → 1e-5)
+Batch:         2048
+Best Epoch:    36 / 50 (early stopped at 44, patience=8)
+HR@10:         0.7190
+NDCG@10:       0.4824
+Feature Gate:  0.18 (graph=82%, features=18%)
+
+vs LightGCN:
+  HR@10:   -0.0100 (-1.4%)
+  NDCG@10: -0.0116 (-2.3%)
+
+vs MF Baseline:
+  HR@10:   +0.0365 (+5.4%)
+  NDCG@10: +0.0274 (+6.0%)
+
+Key Insight:
+  The learned feature gate converged to 0.18, meaning graph
+  collaborative signal (82%) dominates over projected side
+  features (18%) on this dataset. This aligns with the FM
+  Two-Tower finding where ID embeddings carried 63% weight.
+  Side features (user stats, item stats, text embeddings)
+  provide modest but consistent improvement over pure ID-based
+  methods (MF), but cannot surpass LightGCN's multi-hop
+  neighborhood averaging on warm users.

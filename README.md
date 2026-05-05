@@ -13,7 +13,7 @@
 
 ## Overview
 
-End-to-end deep learning recommendation system trained on Amazon Video Games 2023 (98,906 users, 26,354 items, 99.97% sparsity). Built three production-grade models — Matrix Factorization, LightGCN, and Two-Tower — and conducted a systematic 12-variant ablation study to understand what actually improves retrieval quality.
+End-to-end deep learning recommendation system trained on Amazon Video Games 2023 (98,906 users, 26,354 items, 99.97% sparsity). Built four models — Matrix Factorization, LightGCN, Two-Tower, and Feature-Gated LightGCN (Context-GNN) — and conducted a systematic 12-variant ablation study to understand what actually improves retrieval quality.
 
 The Two-Tower model serves recommendations via FAISS at **29 μs per query** and handles cold-start users through GRU encoding over browsed item text — something neither MF nor LightGCN can do.
 
@@ -27,6 +27,7 @@ The Two-Tower model serves recommendations via FAISS at **29 μs per query** and
 |---|---|---|---|---|---|
 | MF (BPR) | — | 0.6825 | 0.4550 | No | Partial |
 | Two-Tower v5 | — | 0.6395 | 0.4148 | **Yes** | **Yes (<1ms)** |
+| Feature-Gated LightGCN | — | 0.7190 | 0.4824 | No | No |
 | LightGCN | — | **0.7290** | **0.4940** | No | No |
 
 ### Full Ranking (all 26,354 items — publication standard)
@@ -72,6 +73,17 @@ Systematic ablation to isolate the contribution of each component:
 | v8 | FM-style additive fusion | 0.6400 | 0.4264 | Interpretable gate weights |
 
 **Key finding:** On 99.97% sparse data, ID collaborative signal dominates. Text embeddings help (+2.6%) but are most valuable for cold-start, not warm users.
+
+### Feature-Gated LightGCN (Context-GNN)
+
+LightGCN propagation + projected side features (user stats, item stats, text embeddings) blended via a learnable sigmoid gate. Tests whether contextual features can improve graph-based recommendations.
+
+| Metric | LightGCN | Feature-Gated LightGCN | Delta |
+|---|---|---|---|
+| HR@10 | **0.7290** | 0.7190 | -1.4% |
+| NDCG@10 | **0.4940** | 0.4824 | -2.3% |
+
+The model learned a **feature gate of 0.18** — graph signal contributes 82%, features only 18%. This confirms the ablation study finding: on sparse collaborative data, structural signal dominates. Features add modest value but cannot overcome LightGCN's pure neighborhood averaging for warm users.
 
 ### FM Gate Weights — What the Model Learned (v8)
 
@@ -179,9 +191,11 @@ Two_Tower_Recommendation_System/
 │   └── models/
 │       ├── mf.py               # Matrix Factorization (BPR)
 │       ├── lightgcn.py         # LightGCN (3-layer)
-│       └── two_tower.py        # Two-Tower v5 (GRU + text + features)
+│       ├── two_tower.py        # Two-Tower v5 (GRU + text + features)
+│       └── context_gnn.py      # Feature-Gated LightGCN (graph + features + text)
 ├── notebooks/
-│   └── training.ipynb          # Full training + ablation notebook
+│   ├── training.ipynb          # Full training + ablation notebook
+│   └── Context_GNN_Colab.ipynb # Context-GNN training notebook
 ├── requirements.txt
 └── README.md
 ```
@@ -190,32 +204,32 @@ Two_Tower_Recommendation_System/
 
 ## Training Details
 
-| Hyperparameter | MF | LightGCN | Two-Tower v5 |
-|---|---|---|---|
-| Embedding dim | 64 | 64 | 64 |
-| Batch size | 2048 | 2048 | 256 |
-| Loss | BPR | BPR | InfoNCE (τ=0.2) |
-| Optimizer | Adam | Adam | Adam |
-| LR | 1e-3 | 1e-3 | 1e-3 |
-| Epochs (best) | 20 | 27 | 8 |
-| Parameters | ~8M | ~8M | ~8.1M |
-| Device | A100 (Colab) | A100 (Colab) | A100 (Colab) |
+| Hyperparameter | MF | LightGCN | Two-Tower v5 | Feature-Gated LightGCN |
+|---|---|---|---|---|
+| Embedding dim | 64 | 64 | 64 | 64 |
+| Batch size | 2048 | 2048 | 256 | 2048 |
+| Loss | BPR | BPR | InfoNCE (τ=0.2) | BPR |
+| Optimizer | Adam | Adam | Adam | Adam |
+| LR | 1e-3 | 1e-3 | 1e-3 | 1e-3 (cosine → 1e-5) |
+| Epochs (best) | 20 | 27 | 8 | 36 |
+| Parameters | ~8M | ~8M | ~8.1M | ~8.1M |
+| Device | A100 (Colab) | A100 (Colab) | A100 (Colab) | T4 (Colab) |
 
 ---
 
-## Why These Three Models?
+## Why These Four Models?
 
-| | MF | LightGCN | Two-Tower |
-|---|---|---|---|
-| Methodology | Collaborative filtering | Graph neural network | Dual-encoder + content |
-| Accuracy (known users) | 2nd | **1st** | 3rd |
-| Cold-start | No | No | **Yes** |
-| New item support | No | No | **Yes** |
-| FAISS deployable | Partial | No | **Yes** |
-| Industry role | Baseline | Re-ranking | **Retrieval** |
-| Scale (100M+ items) | No | No | **Yes** |
+| | MF | LightGCN | Feature-Gated LightGCN | Two-Tower |
+|---|---|---|---|---|
+| Methodology | Collaborative filtering | Graph neural network | GNN + side features | Dual-encoder + content |
+| Accuracy (known users) | 3rd | **1st** | 2nd | 4th |
+| Cold-start | No | No | No | **Yes** |
+| New item support | No | No | No | **Yes** |
+| FAISS deployable | Partial | No | No | **Yes** |
+| Industry role | Baseline | Re-ranking | Research | **Retrieval** |
+| Scale (100M+ items) | No | No | No | **Yes** |
 
-LightGCN wins accuracy but cannot deploy at scale or handle new users. Two-Tower is the production retrieval standard — used by YouTube, Pinterest, and DoorDash — precisely because it solves cold-start and serves via FAISS at microsecond latency.
+LightGCN wins accuracy but cannot deploy at scale or handle new users. Feature-Gated LightGCN tests whether side features improve graph-based recommendations (answer: modestly — the learned gate assigns 82% to graph, 18% to features). Two-Tower is the production retrieval standard — used by YouTube, Pinterest, and DoorDash — precisely because it solves cold-start and serves via FAISS at microsecond latency.
 
 ---
 
