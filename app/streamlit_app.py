@@ -1421,46 +1421,45 @@ elif page == "4. Embedding Space":
             except Exception:
                 pass
 
-    # ── Build consolidated figure via Plotly Express + DataFrame ──────
-    # Use DataFrame + px.scatter — most reliable path, no numpy indexing tricks
-    rng = np.random.default_rng(42)
+    # ── Build figure — go.Scatter with explicit Python lists (the ONLY thing that renders) ──
+    rng    = np.random.default_rng(42)
     MAX_BG = 4000
     bg_opacity = 0.55 if highlight_coords is not None else 0.80
 
-    # Sample background indices uniformly across ALL items
+    # Sample background indices
     n_sample = min(MAX_BG, s["n_items"])
-    bg_idx = rng.choice(s["n_items"], size=n_sample, replace=False)
+    bg_idx   = rng.choice(s["n_items"], size=n_sample, replace=False).tolist()
 
-    # Build DataFrame with plain Python scalars (avoids numpy serialization quirks)
-    df_bg = pd.DataFrame({
-        "x":        [float(coords[i, 0]) for i in bg_idx],
-        "y":        [float(coords[i, 1]) for i in bg_idx],
-        "Category": [cats[int(i)]        for i in bg_idx],
-        "Title":    [data["item_info"].get(int(i), {}).get("title", "")[:40]
-                     for i in bg_idx],
-    })
+    # Group sampled indices by category (plain Python dicts / lists throughout)
+    cat_groups: dict = {}
+    for i in bg_idx:
+        cat = cats[i]
+        cat_groups.setdefault(cat, []).append(i)
 
-    # Stable category → color map for px.scatter
-    all_cats_ordered = top_cats + (["Other"] if "Other" not in top_cats else [])
-    # Ensure the full palette covers every category present in the sample
-    full_palette = ["#cba6f7","#89b4fa","#a6e3a1","#f9e2af","#f38ba8",
-                    "#fab387","#94e2d5","#eba0ac","#b4befe","#89dceb","#a6adc8"]
-    cat_order_in_data = list(df_bg["Category"].unique())
-    color_seq = [full_palette[all_cats_ordered.index(c) % len(full_palette)]
-                 if c in all_cats_ordered else "#a6adc8"
-                 for c in cat_order_in_data]
+    palette_map = {
+        **{c: ["#cba6f7","#89b4fa","#a6e3a1","#f9e2af","#f38ba8",
+               "#fab387","#94e2d5","#eba0ac","#b4befe","#89dceb"][j % 10]
+           for j, c in enumerate(top_cats)},
+        "Other": "#a6adc8",
+    }
 
-    fig = px.scatter(
-        df_bg, x="x", y="y",
-        color="Category",
-        hover_name="Title",
-        category_orders={"Category": cat_order_in_data},
-        color_discrete_sequence=color_seq,
-        height=520,
-    )
-    fig.update_traces(marker=dict(size=5, opacity=bg_opacity))
+    fig = go.Figure()
 
-    # Overlay recommendation stars (plain Python lists — no numpy)
+    # ── Background scatter — one trace per category, all plain Python lists ──
+    for cat, indices in cat_groups.items():
+        x_vals = [float(coords[i, 0]) for i in indices]
+        y_vals = [float(coords[i, 1]) for i in indices]
+        labels = [data["item_info"].get(i, {}).get("title", "")[:40] for i in indices]
+        fig.add_trace(go.Scatter(
+            x=x_vals, y=y_vals,
+            mode="markers",
+            name=cat[:22],
+            marker=dict(size=5, color=palette_map.get(cat, "#a6adc8"), opacity=bg_opacity),
+            text=labels,
+            hovertemplate="%{text}<extra></extra>",
+        ))
+
+    # ── Overlay: recommendations ──
     if highlight_coords is not None and len(highlight_coords) > 0:
         fig.add_trace(go.Scatter(
             x=[float(v) for v in highlight_coords[:, 0]],
@@ -1470,9 +1469,10 @@ elif page == "4. Embedding Space":
             marker=dict(size=14, color="#a6e3a1", symbol="star",
                         line=dict(color="#181825", width=1)),
             text=highlight_labels,
-            hoverinfo="text",
-            showlegend=True,
+            hovertemplate="%{text}<extra></extra>",
         ))
+
+    # ── Overlay: query vector ──
     if user_coord is not None:
         fig.add_trace(go.Scatter(
             x=[float(v) for v in user_coord[:, 0]],
@@ -1482,7 +1482,6 @@ elif page == "4. Embedding Space":
             marker=dict(size=18, color="#f38ba8", symbol="diamond",
                         line=dict(color="#181825", width=2)),
             hoverinfo="name",
-            showlegend=True,
         ))
 
     fig.update_layout(
@@ -1494,8 +1493,10 @@ elif page == "4. Embedding Space":
         legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10),
                     bgcolor="rgba(0,0,0,0)"),
         margin=dict(l=10, r=10, t=36, b=10),
-        title=dict(text=f"Two-Tower Embedding Space — {n_sample:,} of {s['n_items']:,} items (PCA 2D)",
-                   font=dict(color="#cba6f7", size=13)),
+        title=dict(
+            text=f"Two-Tower Embedding Space — {n_sample:,} of {s['n_items']:,} items (PCA 2D)",
+            font=dict(color="#cba6f7", size=13),
+        ),
     )
 
     # ── Layout: chart INSIDE left column (correct width), controls in right ──
