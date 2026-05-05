@@ -284,16 +284,14 @@ def recommend(query_emb, index, exclude_set, k=10):
             results.append((int(idx), float(score)))
     return results, elapsed_us
 
-@st.cache_data(show_spinner="Computing 2D embedding space (first load only)…")
+@st.cache_data(show_spinner="Computing 3D embedding space (first load only)…")
 def compute_pca(_item_embs, _item_info, n_items):
-    pca = PCA(n_components=2, random_state=42)
-    coords = pca.fit_transform(_item_embs[:n_items])
-    # build category list
+    pca = PCA(n_components=3, random_state=42)          # 3D!
+    coords = pca.fit_transform(_item_embs[:n_items])    # (n_items, 3)
     cats = [_item_info.get(i, {}).get("category", "Other") or "Other"
             for i in range(n_items)]
-    # store pca components/mean so user vectors can be projected later
-    pca_components = pca.components_          # shape (2, 64)
-    pca_mean       = pca.mean_                # shape (64,)
+    pca_components = pca.components_   # shape (3, 64)
+    pca_mean       = pca.mean_         # shape (64,)
     return coords, cats, pca_components, pca_mean
 
 
@@ -1353,9 +1351,9 @@ MF beats Two-Tower by 6.7% HR@10 for known users. But a new user arrives → MF 
 # PAGE 4: EMBEDDING SPACE
 # ============================================================
 elif page == "4. Embedding Space":
-    st.markdown("## Embedding Space Explorer")
-    st.markdown("*26,354 items reduced from 64 → 2D via PCA — similar games cluster together. "
-                "Query a user or game to see where recommendations land.*")
+    st.markdown("## Embedding Space Explorer — 3D Galaxy")
+    st.markdown("*26,354 games reduced from 64 → 3D via PCA — drag to rotate, scroll to zoom. "
+                "Similar games cluster together. Query a user or game to see recommendations land.*")
     st.markdown("---")
 
     coords, cats, pca_components, pca_mean = compute_pca(
@@ -1421,20 +1419,18 @@ elif page == "4. Embedding Space":
             except Exception:
                 pass
 
-    # ── Build figure — go.Scatter with explicit Python lists (the ONLY thing that renders) ──
+    # ── Build interactive 3D figure — go.Scatter3d, plain Python lists ──
     rng    = np.random.default_rng(42)
     MAX_BG = 4000
-    bg_opacity = 0.55 if highlight_coords is not None else 0.80
+    bg_opacity = 0.55 if highlight_coords is not None else 0.85
 
-    # Sample background indices
     n_sample = min(MAX_BG, s["n_items"])
     bg_idx   = rng.choice(s["n_items"], size=n_sample, replace=False).tolist()
 
-    # Group sampled indices by category (plain Python dicts / lists throughout)
+    # Group by category
     cat_groups: dict = {}
     for i in bg_idx:
-        cat = cats[i]
-        cat_groups.setdefault(cat, []).append(i)
+        cat_groups.setdefault(cats[i], []).append(i)
 
     palette_map = {
         **{c: ["#cba6f7","#89b4fa","#a6e3a1","#f9e2af","#f38ba8",
@@ -1445,56 +1441,77 @@ elif page == "4. Embedding Space":
 
     fig = go.Figure()
 
-    # ── Background scatter — one trace per category, all plain Python lists ──
+    # ── Background: one Scatter3d trace per category ──
     for cat, indices in cat_groups.items():
-        x_vals = [float(coords[i, 0]) for i in indices]
-        y_vals = [float(coords[i, 1]) for i in indices]
-        labels = [data["item_info"].get(i, {}).get("title", "")[:40] for i in indices]
-        fig.add_trace(go.Scatter(
-            x=x_vals, y=y_vals,
+        fig.add_trace(go.Scatter3d(
+            x=[float(coords[i, 0]) for i in indices],
+            y=[float(coords[i, 1]) for i in indices],
+            z=[float(coords[i, 2]) for i in indices],
             mode="markers",
             name=cat[:22],
-            marker=dict(size=5, color=palette_map.get(cat, "#a6adc8"), opacity=bg_opacity),
-            text=labels,
+            marker=dict(
+                size=2,
+                color=palette_map.get(cat, "#a6adc8"),
+                opacity=bg_opacity,
+            ),
+            text=[data["item_info"].get(i, {}).get("title", "")[:40] for i in indices],
             hovertemplate="%{text}<extra></extra>",
         ))
 
-    # ── Overlay: recommendations ──
+    # ── Overlay: recommendation stars ──
     if highlight_coords is not None and len(highlight_coords) > 0:
-        fig.add_trace(go.Scatter(
+        fig.add_trace(go.Scatter3d(
             x=[float(v) for v in highlight_coords[:, 0]],
             y=[float(v) for v in highlight_coords[:, 1]],
-            mode="markers",
+            z=[float(v) for v in highlight_coords[:, 2]],
+            mode="markers+text",
             name="Recommendations ★",
-            marker=dict(size=14, color="#a6e3a1", symbol="star",
+            marker=dict(size=8, color="#a6e3a1", symbol="diamond",
                         line=dict(color="#181825", width=1)),
-            text=highlight_labels,
-            hovertemplate="%{text}<extra></extra>",
+            text=["★"] * len(highlight_coords),
+            textposition="top center",
+            textfont=dict(size=14, color="#a6e3a1"),
+            customdata=highlight_labels,
+            hovertemplate="%{customdata}<extra></extra>",
         ))
 
     # ── Overlay: query vector ──
     if user_coord is not None:
-        fig.add_trace(go.Scatter(
+        fig.add_trace(go.Scatter3d(
             x=[float(v) for v in user_coord[:, 0]],
             y=[float(v) for v in user_coord[:, 1]],
+            z=[float(v) for v in user_coord[:, 2]],
             mode="markers",
             name="Query ◆",
-            marker=dict(size=18, color="#f38ba8", symbol="diamond",
+            marker=dict(size=12, color="#f38ba8", symbol="diamond",
                         line=dict(color="#181825", width=2)),
             hoverinfo="name",
         ))
 
+    axis_style = dict(
+        showgrid=False, zeroline=False, showticklabels=False,
+        showline=False, title="",
+        backgroundcolor="#181825",
+    )
     fig.update_layout(
-        height=520,
-        plot_bgcolor="#181825", paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#cdd6f4"),
-        xaxis=dict(visible=False, showgrid=False, zeroline=False),
-        yaxis=dict(visible=False, showgrid=False, zeroline=False),
-        legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10),
-                    bgcolor="rgba(0,0,0,0)"),
-        margin=dict(l=10, r=10, t=36, b=10),
+        height=560,
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#cdd6f4", size=11),
+        scene=dict(
+            bgcolor="#181825",
+            xaxis=axis_style,
+            yaxis=axis_style,
+            zaxis=axis_style,
+            camera=dict(eye=dict(x=1.4, y=1.4, z=0.8)),
+        ),
+        legend=dict(
+            x=0.01, y=0.99, font=dict(size=10),
+            bgcolor="rgba(24,24,37,0.7)",
+            bordercolor="#313244", borderwidth=1,
+        ),
+        margin=dict(l=0, r=0, t=36, b=0),
         title=dict(
-            text=f"Two-Tower Embedding Space — {n_sample:,} of {s['n_items']:,} items (PCA 2D)",
+            text=f"3D Embedding Galaxy — {n_sample:,} of {s['n_items']:,} games · rotate to explore",
             font=dict(color="#cba6f7", size=13),
         ),
     )
