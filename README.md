@@ -6,8 +6,8 @@
 [![Dataset](https://img.shields.io/badge/Dataset-Amazon%20Video%20Games%202023-yellow?style=flat-square)](https://amazon-reviews-2023.github.io)
 [![CI](https://img.shields.io/github/actions/workflow/status/nidhi1603/Two_Tower_Recommendation_System/ci.yml?style=for-the-badge&logo=githubactions)](../../actions)
 
-> **Live demo →** (https://two-tower-rec-sys.streamlit.app)  
-> Try the cold-start demo: pick 3 games you like and get personalized recommendations instantly — no account needed.
+> **Live demo →** https://two-tower-rec-sys.streamlit.app  
+> Explore interactive architecture diagrams, compare all 4 models side-by-side, and try the cold-start demo — pick 3 games you like and get personalized recommendations instantly, no account needed.
 
 ---
 
