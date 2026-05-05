@@ -14,6 +14,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence
 import plotly.graph_objects as go
+import plotly.express as px
+import pandas as pd
 from sklearn.decomposition import PCA
 
 # ── Custom CSS ────────────────────────────────────────────
@@ -1419,62 +1421,81 @@ elif page == "4. Embedding Space":
             except Exception:
                 pass
 
-    # ── Build consolidated figure ──────────────────────────────────────
-    rng       = np.random.default_rng(42)
-    MAX_BG    = 6000
-    n_buckets = max(1, len(top_cats) + 1)
-    per_bucket = max(120, MAX_BG // n_buckets)
-    # Keep dots visible even when dimmed — use 0.40 not 0.12
-    bg_opacity = 0.40 if highlight_coords is not None else 0.70
+    # ── Build consolidated figure via Plotly Express + DataFrame ──────
+    # Use DataFrame + px.scatter — most reliable path, no numpy indexing tricks
+    rng = np.random.default_rng(42)
+    MAX_BG = 4000
+    bg_opacity = 0.55 if highlight_coords is not None else 0.80
 
-    fig = go.Figure()
-    for cat in top_cats + ["Other"]:
-        mask = np.array([i for i, c in enumerate(cats) if c == cat])
-        if len(mask) == 0:
-            continue
-        if len(mask) > per_bucket:
-            mask = rng.choice(mask, size=per_bucket, replace=False)
-        fig.add_trace(go.Scatter(
-            x=coords[mask, 0], y=coords[mask, 1],
-            mode="markers",
-            name=cat[:25],
-            marker=dict(size=5, color=cat_color[cat], opacity=bg_opacity),
-            hovertemplate="%{text}<extra></extra>",
-            text=[data["item_info"].get(int(i), {}).get("title", "")[:40] for i in mask],
-        ))
+    # Sample background indices uniformly across ALL items
+    n_sample = min(MAX_BG, s["n_items"])
+    bg_idx = rng.choice(s["n_items"], size=n_sample, replace=False)
 
+    # Build DataFrame with plain Python scalars (avoids numpy serialization quirks)
+    df_bg = pd.DataFrame({
+        "x":        [float(coords[i, 0]) for i in bg_idx],
+        "y":        [float(coords[i, 1]) for i in bg_idx],
+        "Category": [cats[int(i)]        for i in bg_idx],
+        "Title":    [data["item_info"].get(int(i), {}).get("title", "")[:40]
+                     for i in bg_idx],
+    })
+
+    # Stable category → color map for px.scatter
+    all_cats_ordered = top_cats + (["Other"] if "Other" not in top_cats else [])
+    # Ensure the full palette covers every category present in the sample
+    full_palette = ["#cba6f7","#89b4fa","#a6e3a1","#f9e2af","#f38ba8",
+                    "#fab387","#94e2d5","#eba0ac","#b4befe","#89dceb","#a6adc8"]
+    cat_order_in_data = list(df_bg["Category"].unique())
+    color_seq = [full_palette[all_cats_ordered.index(c) % len(full_palette)]
+                 if c in all_cats_ordered else "#a6adc8"
+                 for c in cat_order_in_data]
+
+    fig = px.scatter(
+        df_bg, x="x", y="y",
+        color="Category",
+        hover_name="Title",
+        category_orders={"Category": cat_order_in_data},
+        color_discrete_sequence=color_seq,
+        height=520,
+    )
+    fig.update_traces(marker=dict(size=5, opacity=bg_opacity))
+
+    # Overlay recommendation stars (plain Python lists — no numpy)
     if highlight_coords is not None and len(highlight_coords) > 0:
         fig.add_trace(go.Scatter(
-            x=highlight_coords[:, 0], y=highlight_coords[:, 1],
+            x=[float(v) for v in highlight_coords[:, 0]],
+            y=[float(v) for v in highlight_coords[:, 1]],
             mode="markers",
             name="Recommendations ★",
-            marker=dict(size=15, color="#a6e3a1", symbol="star",
-                        line=dict(color="#1e1e2e", width=1)),
-            hovertemplate="%{customdata}<extra></extra>",
-            customdata=highlight_labels,
+            marker=dict(size=14, color="#a6e3a1", symbol="star",
+                        line=dict(color="#181825", width=1)),
+            text=highlight_labels,
+            hoverinfo="text",
+            showlegend=True,
         ))
     if user_coord is not None:
         fig.add_trace(go.Scatter(
-            x=user_coord[:, 0], y=user_coord[:, 1],
+            x=[float(v) for v in user_coord[:, 0]],
+            y=[float(v) for v in user_coord[:, 1]],
             mode="markers",
             name="Query ◆",
             marker=dict(size=18, color="#f38ba8", symbol="diamond",
-                        line=dict(color="#1e1e2e", width=2)),
-            hovertemplate="Query vector<extra></extra>",
+                        line=dict(color="#181825", width=2)),
+            hoverinfo="name",
+            showlegend=True,
         ))
 
     fig.update_layout(
         height=520,
-        # Solid dark background so light-colored dots always have contrast
-        plot_bgcolor="#1e1e2e", paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="#181825", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#cdd6f4"),
-        xaxis=dict(visible=False, showgrid=False),
-        yaxis=dict(visible=False, showgrid=False),
+        xaxis=dict(visible=False, showgrid=False, zeroline=False),
+        yaxis=dict(visible=False, showgrid=False, zeroline=False),
         legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10),
                     bgcolor="rgba(0,0,0,0)"),
-        margin=dict(l=0, r=0, t=36, b=0),
-        title=dict(text="Two-Tower Item Embedding Space (PCA 2D)",
-                   font=dict(color="#cba6f7", size=14)),
+        margin=dict(l=10, r=10, t=36, b=10),
+        title=dict(text=f"Two-Tower Embedding Space — {n_sample:,} of {s['n_items']:,} items (PCA 2D)",
+                   font=dict(color="#cba6f7", size=13)),
     )
 
     # ── Layout: chart INSIDE left column (correct width), controls in right ──
