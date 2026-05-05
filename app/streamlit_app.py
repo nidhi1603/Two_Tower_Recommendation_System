@@ -321,64 +321,193 @@ page = st.sidebar.radio("Navigate to:", [
 # PAGE 1: OVERVIEW & DATASET
 # ============================================================
 if page == "1. Overview & Dataset":
-    st.markdown("## Deep Learning Recommendation System")
-    st.markdown("*Four models, 12 ablation variants — what actually improves retrieval on sparse data?*")
+
+    # ── Hero banner ───────────────────────────────────────────
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#1e1e2e 0%,#181825 60%,#11111b 100%);
+                border:1px solid #313244;border-radius:14px;padding:28px 32px;margin-bottom:20px;">
+      <div style="font-size:1.55rem;font-weight:800;color:#cba6f7;margin-bottom:8px;">
+        How does Netflix know what to suggest before you even search?
+      </div>
+      <div style="font-size:1.05rem;color:#a6adc8;line-height:1.6;">
+        You open Netflix — the front page is already yours.<br>
+        You open Amazon — the deals are tailored to you.<br>
+        You open YouTube — the algorithm already knows your mood.<br>
+        <span style="color:#cdd6f4;font-weight:600;">That's a recommendation system running in milliseconds, at billion-user scale.</span>
+      </div>
+      <div style="margin-top:16px;font-size:0.95rem;color:#89b4fa;">
+        This project builds one from scratch — four deep learning models, 98,000 real Amazon users,
+        12 controlled experiments to find what <em>actually</em> matters.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Scale metrics ─────────────────────────────────────────
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    for col, val, lbl in zip(
+        [c1, c2, c3, c4, c5, c6],
+        ["98,906", "26,354", "659K", "99.97%", "4", "12"],
+        ["Users", "Items", "Interactions", "Sparsity", "Models", "Ablation Variants"]
+    ):
+        col.markdown(
+            f'<div class="metric-card"><div class="metric-value">{val}</div>'
+            f'<div class="metric-label">{lbl}</div></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── Industry context + problem ────────────────────────────
+    row1_l, row1_r = st.columns([1.1, 1], gap="large")
+
+    with row1_l:
+        st.markdown('<div class="section-header">How Industry Does It — The Two-Stage Pipeline</div>',
+                    unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:10px;padding:16px 20px;">
+          <div style="color:#cdd6f4;font-size:0.92rem;line-height:1.8;">
+            <b style="color:#cba6f7;">Stage 1 — Retrieval</b> (this project)<br>
+            &nbsp;&nbsp;Narrow 26,354 items → top 100 candidates in &lt;1 ms<br>
+            &nbsp;&nbsp;Must handle brand-new users, must run on every API call<br><br>
+            <b style="color:#89b4fa;">Stage 2 — Re-ranking</b><br>
+            &nbsp;&nbsp;Score the 100 candidates with a heavy model (cross-attention, etc.)<br>
+            &nbsp;&nbsp;Pick final top-10 to display<br><br>
+            <b style="color:#a6adc8;font-size:0.85rem;">
+            YouTube, Pinterest, DoorDash, Airbnb, Spotify all use this exact split.
+            My Two-Tower is Stage 1. LightGCN can serve as Stage 2 on the candidate set.
+            </b>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="section-header">The Hard Problem — Sparsity</div>',
+                    unsafe_allow_html=True)
+        st.markdown("""
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="background:#1e1e2e;border:1px solid #f38ba8;border-radius:8px;
+                      padding:10px 16px;flex:1;min-width:140px;">
+            <div style="color:#f38ba8;font-weight:700;">99.97% Empty</div>
+            <div style="color:#a6adc8;font-size:0.82rem;margin-top:4px;">
+              The user-item matrix has 2.6 billion possible cells.
+              Only 659K are filled. Most users bought 5–7 items total.
+            </div>
+          </div>
+          <div style="background:#1e1e2e;border:1px solid #f9e2af;border-radius:8px;
+                      padding:10px 16px;flex:1;min-width:140px;">
+            <div style="color:#f9e2af;font-weight:700;">Cold-Start</div>
+            <div style="color:#a6adc8;font-size:0.82rem;margin-top:4px;">
+              New users have zero purchase history.
+              MF and LightGCN return nothing. Two-Tower handles it.
+            </div>
+          </div>
+          <div style="background:#1e1e2e;border:1px solid #a6e3a1;border-radius:8px;
+                      padding:10px 16px;flex:1;min-width:140px;">
+            <div style="color:#a6e3a1;font-weight:700;">Scale</div>
+            <div style="color:#a6adc8;font-size:0.82rem;margin-top:4px;">
+              98K users × 26K items = 2.6B comparisons.
+              My FAISS index answers in 29 μs.
+            </div>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with row1_r:
+        st.markdown('<div class="section-header">What I Built vs. the YouTube 2016 Paper</div>',
+                    unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background:#1e1e2e;border:1px solid #313244;border-radius:10px;
+                    padding:14px 18px;font-size:0.88rem;">
+          <table style="width:100%;border-collapse:collapse;color:#cdd6f4;">
+            <tr style="border-bottom:1px solid #45475a;">
+              <th style="padding:6px 8px;color:#a6adc8;text-align:left;">Dimension</th>
+              <th style="padding:6px 8px;color:#f38ba8;">YouTube (2016)</th>
+              <th style="padding:6px 8px;color:#a6e3a1;">My Version</th>
+            </tr>
+            <tr style="border-bottom:1px solid #313244;">
+              <td style="padding:5px 8px;color:#a6adc8;">History encoding</td>
+              <td style="padding:5px 8px;color:#f38ba8;">Average of items</td>
+              <td style="padding:5px 8px;color:#a6e3a1;">GRU — order matters</td>
+            </tr>
+            <tr style="border-bottom:1px solid #313244;">
+              <td style="padding:5px 8px;color:#a6adc8;">Item features</td>
+              <td style="padding:5px 8px;color:#f38ba8;">None</td>
+              <td style="padding:5px 8px;color:#a6e3a1;">SentenceTransformer title emb (+2.6%)</td>
+            </tr>
+            <tr style="border-bottom:1px solid #313244;">
+              <td style="padding:5px 8px;color:#a6adc8;">Loss function</td>
+              <td style="padding:5px 8px;color:#f38ba8;">Softmax over all items (slow)</td>
+              <td style="padding:5px 8px;color:#a6e3a1;">InfoNCE in-batch negatives (10× faster)</td>
+            </tr>
+            <tr style="border-bottom:1px solid #313244;">
+              <td style="padding:5px 8px;color:#a6adc8;">Serving</td>
+              <td style="padding:5px 8px;color:#f38ba8;">Not addressed</td>
+              <td style="padding:5px 8px;color:#a6e3a1;">FAISS HNSW — 29 μs / query</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 8px;color:#a6adc8;">Cold-start</td>
+              <td style="padding:5px 8px;color:#f38ba8;">Not addressed</td>
+              <td style="padding:5px 8px;color:#a6e3a1;">GRU on browsed items — works day 1</td>
+            </tr>
+          </table>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="section-header">My Original Contribution</div>',
+                    unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background:#1e1e2e;border:1px solid #cba6f7;border-radius:10px;
+                    padding:14px 18px;">
+          <div style="color:#cba6f7;font-weight:700;font-size:1rem;margin-bottom:8px;">
+            Feature-Gated LightGCN
+          </div>
+          <div style="color:#cdd6f4;font-size:0.88rem;line-height:1.7;">
+            Prior work either <em>ignores</em> side features or <em>concatenates</em> them with fixed weights.<br>
+            I added a single learnable sigmoid gate θ:<br>
+            <code style="background:#313244;padding:2px 6px;border-radius:4px;color:#a6e3a1;">
+              E_final = (1−θ)·E_graph + θ·E_features
+            </code><br><br>
+            The model started at θ=0.57 (50/50 blend).<br>
+            After 36 epochs it converged to <strong style="color:#a6e3a1;">θ=0.18</strong>.<br>
+            <strong>The model itself learned graph signal is 4.5× more valuable than features on this sparse dataset.</strong>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     st.markdown("---")
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.markdown('<div class="metric-card"><div class="metric-value">98,906</div><div class="metric-label">Users</div></div>', unsafe_allow_html=True)
-    c2.markdown('<div class="metric-card"><div class="metric-value">26,354</div><div class="metric-label">Items</div></div>', unsafe_allow_html=True)
-    c3.markdown('<div class="metric-card"><div class="metric-value">659K</div><div class="metric-label">Interactions</div></div>', unsafe_allow_html=True)
-    c4.markdown('<div class="metric-card"><div class="metric-value">99.97%</div><div class="metric-label">Sparsity</div></div>', unsafe_allow_html=True)
-    c5.markdown('<div class="metric-card"><div class="metric-value">4</div><div class="metric-label">Models</div></div>', unsafe_allow_html=True)
-    c6.markdown('<div class="metric-card"><div class="metric-value">12</div><div class="metric-label">Ablation Variants</div></div>', unsafe_allow_html=True)
+    # ── Four models summary + pipeline ────────────────────────
+    row2_l, row2_r = st.columns([1.2, 1], gap="large")
 
-    st.markdown("")
-    left, right = st.columns([1, 1], gap="large")
-
-    with left:
-        st.markdown('<div class="section-header">The Problem</div>', unsafe_allow_html=True)
-        st.markdown("""
-        **Goal:** Recommend video games to users on Amazon.
-
-        **Challenge:** 99.97% of the user-item matrix is empty.
-        Most users have only 5-7 purchases. Most items have few reviews.
-
-        **Questions we answer:**
-        - Does graph structure (who bought what) beat content features (text, price)?
-        - Can we serve brand-new users with zero purchase history?
-        - Can we serve recommendations in microseconds?
-        """)
-
-        st.markdown('<div class="section-header">Data Pipeline</div>', unsafe_allow_html=True)
-        st.markdown("""
-        1. **Download** Amazon Video Games 2023 from HuggingFace
-        2. **K-core filter** (k=5) — keep users & items with ≥5 interactions
-        3. **Feature engineering** — 8 user features, 15 item features
-        4. **Text embeddings** — item titles via SentenceTransformer (384d)
-        5. **Leave-last-2-out** split — chronological per user
-        """)
-
-    with right:
-        st.markdown('<div class="section-header">Four Models at a Glance</div>', unsafe_allow_html=True)
+    with row2_l:
+        st.markdown('<div class="section-header">Four Models — Role in the Stack</div>',
+                    unsafe_allow_html=True)
         st.dataframe({
-            "Model":      ["MF (BPR)", "LightGCN", "Two-Tower v5", "FG-LightGCN"],
-            "HR@10":      [0.6825, 0.7290, 0.6395, 0.7190],
-            "Type":       ["Collaborative", "Graph NN", "Dual Encoder", "Graph + Features"],
-            "Cold-Start": ["No", "No", "Yes", "No"],
-            "FAISS":      ["Partial", "No", "Yes (<1ms)", "No"],
-            "Role":       ["Baseline", "Re-ranking", "Retrieval", "Research"],
+            "Model":        ["MF (BPR)", "LightGCN", "Two-Tower", "FG-LightGCN"],
+            "HR@10":        [0.6825, 0.7290, 0.6395, 0.7190],
+            "Architecture": ["Collaborative", "Graph NN", "Dual Encoder", "Graph + Gate"],
+            "Cold-Start":   ["✗", "✗", "✓", "✗"],
+            "FAISS Ready":  ["Partial", "✗", "✓ 29 μs", "✗"],
+            "Role":         ["Baseline", "Stage-2 ranker", "Stage-1 retrieval", "Research"],
         }, hide_index=True, use_container_width=True)
 
-        st.markdown('<div class="section-header">Why These Four?</div>', unsafe_allow_html=True)
-        st.markdown("""
-        | Model | Purpose |
-        |---|---|
-        | **MF** | Baseline — if you can't beat this, complexity isn't justified |
-        | **LightGCN** | Best accuracy — multi-hop graph captures collaborative patterns |
-        | **Two-Tower** | Production — cold-start + FAISS serving at 29μs |
-        | **FG-LightGCN** | My contribution — tests if features improve graph models |
-        """)
+    with row2_r:
+        st.markdown('<div class="section-header">Data Pipeline</div>', unsafe_allow_html=True)
+        for i, (step, detail, color) in enumerate([
+            ("Download", "Amazon Video Games 2023 · McAuley Lab / HuggingFace", "#cba6f7"),
+            ("K-core filter (k=5)", "Remove users & items with <5 interactions → 659K pairs remain", "#89b4fa"),
+            ("Feature engineering", "8 user features (activity, recency…) · 15 item features (price, rating…)", "#a6e3a1"),
+            ("Text embeddings", "SentenceTransformer on item titles → 384d, projected to 64d", "#f9e2af"),
+            ("Split & train", "Chronological leave-last-2-out · 4 models · 12 ablation variants", "#fab387"),
+        ], 1):
+            st.markdown(
+                f'<div style="display:flex;align-items:flex-start;gap:10px;margin:6px 0;">'
+                f'<div style="background:{color};color:#1e1e2e;border-radius:50%;'
+                f'width:22px;height:22px;min-width:22px;display:flex;align-items:center;'
+                f'justify-content:center;font-weight:800;font-size:0.75rem;">{i}</div>'
+                f'<div><div style="color:{color};font-weight:600;font-size:0.88rem;">{step}</div>'
+                f'<div style="color:#a6adc8;font-size:0.8rem;">{detail}</div></div></div>',
+                unsafe_allow_html=True,
+            )
 
 
 # ============================================================
@@ -1223,7 +1352,8 @@ MF beats Two-Tower by 6.7% HR@10 for known users. But a new user arrives → MF 
 # ============================================================
 elif page == "4. Embedding Space":
     st.markdown("## Embedding Space Explorer")
-    st.markdown("*26,354 items reduced from 64 → 2 dimensions — similar games cluster together in this space.*")
+    st.markdown("*26,354 items reduced from 64 → 2D via PCA — similar games cluster together. "
+                "Query a user or game to see where recommendations land.*")
     st.markdown("---")
 
     coords, cats, pca_components, pca_mean = compute_pca(
@@ -1231,100 +1361,73 @@ elif page == "4. Embedding Space":
     )
 
     from collections import Counter
+
     cat_counts = Counter(cats)
     top_cats = [c for c, _ in cat_counts.most_common(10) if c != "Other"]
-    palette = ["#cba6f7","#89b4fa","#a6e3a1","#f9e2af","#f38ba8",
-               "#fab387","#94e2d5","#eba0ac","#b4befe","#cdd6f4"]
+    # Vivid, high-contrast palette — all readable against dark backgrounds
+    palette = ["#cba6f7", "#89b4fa", "#a6e3a1", "#f9e2af", "#f38ba8",
+               "#fab387", "#94e2d5", "#eba0ac", "#b4befe", "#89dceb"]
     cat_color = {cat: palette[i % len(palette)] for i, cat in enumerate(top_cats)}
-    cat_color["Other"] = "#45475a"
+    cat_color["Other"] = "#a6adc8"   # light grey — clearly visible on any dark bg
 
-    left, right = st.columns([2, 1], gap="large")
+    # ── Session-state defaults (read BEFORE columns so chart is built first) ──
+    st.session_state.setdefault("emb_mode", "User ID")
+    st.session_state.setdefault("emb_uid",  100)
+    st.session_state.setdefault("emb_search", "Dark Souls")
+    st.session_state.setdefault("emb_seed_id", None)
 
-    # Reserve chart slot — rendered AFTER interactions are resolved
-    with left:
-        chart_slot = st.empty()
-
-    # ── Interaction panel (right column) ──────────────────────────────
+    # ── Pre-compute highlights from current session state ──────────────
     highlight_coords = None
     highlight_labels = None
     user_coord       = None
+    elapsed_us_val   = None
+    recs_val         = []
 
-    with right:
-        st.markdown('<div class="section-header">Query the Space</div>', unsafe_allow_html=True)
-        st.caption("Pick a user or type a game — watch where recommendations land on the map.")
+    cur_mode = st.session_state["emb_mode"]
 
-        query_mode = st.radio("Query by:", ["User ID", "Game search"], horizontal=True)
-
-        if query_mode == "User ID":
-            uid = st.number_input("User ID", min_value=0,
-                                  max_value=s["n_users"] - 1, value=100, key="emb_uid")
-            recs, elapsed_us = recommend(
-                data["tt_user"][uid], data["tt_index"],
-                set(data["user_history"].get(uid, [])), k=10
+    if cur_mode == "User ID":
+        cur_uid = int(st.session_state["emb_uid"])
+        cur_uid = max(0, min(cur_uid, s["n_users"] - 1))
+        try:
+            recs_val, elapsed_us_val = recommend(
+                data["tt_user"][cur_uid], data["tt_index"],
+                set(data["user_history"].get(cur_uid, [])), k=10
             )
-            st.metric("⚡ FAISS search time", f"{elapsed_us:.0f} μs")
-            rec_ids        = [idx for idx, _ in recs]
-            highlight_coords = coords[rec_ids]
-            highlight_labels = [data["item_info"].get(i, {}).get("title", "")[:35]
-                                 for i in rec_ids]
-            # Project user vector into PCA space using stored components (no refit)
-            u_vec       = data["tt_user"][uid].reshape(1, -1)        # (1, 64)
-            user_coord  = (u_vec - pca_mean) @ pca_components.T      # (1, 2)
-            st.markdown("**Top 10 recommendations (★ on map):**")
-            for rank, (idx, score) in enumerate(recs, 1):
-                title = data["item_info"].get(idx, {}).get("title", "Unknown")[:40]
-                st.markdown(
-                    f"<div style='font-size:0.82rem;color:#cdd6f4;"
-                    f"padding:3px 0;border-bottom:1px solid #313244;'>"
-                    f"<b>{rank}.</b> {title}</div>",
-                    unsafe_allow_html=True,
+            rec_ids = [idx for idx, _ in recs_val]
+            if rec_ids:
+                highlight_coords = coords[rec_ids]
+                highlight_labels = [data["item_info"].get(i, {}).get("title", "")[:35]
+                                    for i in rec_ids]
+            u_vec       = data["tt_user"][cur_uid].reshape(1, -1)
+            user_coord  = (u_vec - pca_mean) @ pca_components.T
+        except Exception:
+            pass
+    else:
+        cur_seed = st.session_state.get("emb_seed_id")
+        if cur_seed is not None and 0 <= int(cur_seed) < s["n_items"]:
+            try:
+                cur_seed = int(cur_seed)
+                recs_val, elapsed_us_val = recommend(
+                    data["tt_item"][cur_seed], data["tt_index"], {cur_seed}, k=10
                 )
-
-        else:
-            search = st.text_input("Game title:", "Dark Souls")
-            if search:
-                matches = [
-                    (i, data["item_info"].get(i, {}).get("title", ""))
-                    for i in range(s["n_items"])
-                    if search.lower() in
-                       data["item_info"].get(i, {}).get("title", "").lower()
-                ][:5]
-                if matches:
-                    seed_id = st.selectbox(
-                        "Select:", [i for i, _ in matches],
-                        format_func=lambda x: data["item_info"].get(x, {}).get("title", "")[:50],
-                    )
-                    recs, elapsed_us = recommend(
-                        data["tt_item"][seed_id], data["tt_index"], {seed_id}, k=10
-                    )
-                    st.metric("⚡ FAISS search time", f"{elapsed_us:.0f} μs")
-                    rec_ids        = [idx for idx, _ in recs]
+                rec_ids = [idx for idx, _ in recs_val]
+                if rec_ids:
                     highlight_coords = coords[rec_ids]
                     highlight_labels = [data["item_info"].get(i, {}).get("title", "")[:35]
                                         for i in rec_ids]
-                    user_coord = coords[seed_id].reshape(1, -1)
-                    st.markdown("**Similar items (★ on map):**")
-                    for rank, (idx, score) in enumerate(recs, 1):
-                        title = data["item_info"].get(idx, {}).get("title", "")[:40]
-                        st.markdown(
-                            f"<div style='font-size:0.82rem;color:#cdd6f4;"
-                            f"padding:3px 0;border-bottom:1px solid #313244;'>"
-                            f"<b>{rank}.</b> {title}</div>",
-                            unsafe_allow_html=True,
-                        )
-                elif search:
-                    st.info("No matching titles found.")
+                user_coord = coords[cur_seed].reshape(1, -1)
+            except Exception:
+                pass
 
-    # ── Build ONE consolidated figure and render into placeholder ─────
-    # Subsample background to keep SVG chart responsive (~5 000 bg points)
-    rng    = np.random.default_rng(42)
-    MAX_BG = 5000
-    n_buckets = len(top_cats) + 1          # +1 for "Other"
-    per_bucket = max(50, MAX_BG // n_buckets)
-    bg_opacity = 0.12 if highlight_coords is not None else 0.55
+    # ── Build consolidated figure ──────────────────────────────────────
+    rng       = np.random.default_rng(42)
+    MAX_BG    = 6000
+    n_buckets = max(1, len(top_cats) + 1)
+    per_bucket = max(120, MAX_BG // n_buckets)
+    # Keep dots visible even when dimmed — use 0.40 not 0.12
+    bg_opacity = 0.40 if highlight_coords is not None else 0.70
 
     fig = go.Figure()
-
     for cat in top_cats + ["Other"]:
         mask = np.array([i for i, c in enumerate(cats) if c == cat])
         if len(mask) == 0:
@@ -1335,46 +1438,119 @@ elif page == "4. Embedding Space":
             x=coords[mask, 0], y=coords[mask, 1],
             mode="markers",
             name=cat[:25],
-            marker=dict(size=4, color=cat_color[cat], opacity=bg_opacity),
+            marker=dict(size=5, color=cat_color[cat], opacity=bg_opacity),
             hovertemplate="%{text}<extra></extra>",
             text=[data["item_info"].get(int(i), {}).get("title", "")[:40] for i in mask],
         ))
 
-    # Overlay recommendation stars
-    if highlight_coords is not None:
+    if highlight_coords is not None and len(highlight_coords) > 0:
         fig.add_trace(go.Scatter(
             x=highlight_coords[:, 0], y=highlight_coords[:, 1],
             mode="markers",
-            name="Recommendations",
-            marker=dict(size=14, color="#a6e3a1", symbol="star",
+            name="Recommendations ★",
+            marker=dict(size=15, color="#a6e3a1", symbol="star",
                         line=dict(color="#1e1e2e", width=1)),
             hovertemplate="%{customdata}<extra></extra>",
             customdata=highlight_labels,
         ))
-        if user_coord is not None:
-            fig.add_trace(go.Scatter(
-                x=user_coord[:, 0], y=user_coord[:, 1],
-                mode="markers",
-                name="Query ◆",
-                marker=dict(size=18, color="#f38ba8", symbol="diamond",
-                            line=dict(color="#1e1e2e", width=2)),
-                hovertemplate="Query vector<extra></extra>",
-            ))
+    if user_coord is not None:
+        fig.add_trace(go.Scatter(
+            x=user_coord[:, 0], y=user_coord[:, 1],
+            mode="markers",
+            name="Query ◆",
+            marker=dict(size=18, color="#f38ba8", symbol="diamond",
+                        line=dict(color="#1e1e2e", width=2)),
+            hovertemplate="Query vector<extra></extra>",
+        ))
 
     fig.update_layout(
         height=520,
-        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        # Solid dark background so light-colored dots always have contrast
+        plot_bgcolor="#1e1e2e", paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#cdd6f4"),
-        xaxis=dict(visible=False), yaxis=dict(visible=False),
-        legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10)),
+        xaxis=dict(visible=False, showgrid=False),
+        yaxis=dict(visible=False, showgrid=False),
+        legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10),
+                    bgcolor="rgba(0,0,0,0)"),
         margin=dict(l=0, r=0, t=36, b=0),
-        title=dict(
-            text="Two-Tower Item Embedding Space (PCA 2D)",
-            font=dict(color="#cba6f7", size=14),
-        ),
+        title=dict(text="Two-Tower Item Embedding Space (PCA 2D)",
+                   font=dict(color="#cba6f7", size=14)),
     )
-    # Render exactly once into the placeholder in the left column
-    chart_slot.plotly_chart(fig, use_container_width=True)
+
+    # ── Layout: chart INSIDE left column (correct width), controls in right ──
+    left, right = st.columns([2, 1], gap="large")
+
+    with left:
+        # Chart rendered here — inside the column — no placeholder tricks needed
+        st.plotly_chart(fig, use_container_width=True)
+
+    with right:
+        st.markdown('<div class="section-header">Query the Space</div>',
+                    unsafe_allow_html=True)
+        st.caption("Pick a user or type a game — watch where recommendations land on the map.")
+
+        new_mode = st.radio("Query by:", ["User ID", "Game search"], horizontal=True,
+                            index=0 if cur_mode == "User ID" else 1)
+        # Update mode and reset seed if mode switches
+        if new_mode != cur_mode:
+            st.session_state["emb_mode"] = new_mode
+            st.session_state["emb_seed_id"] = None
+
+        if new_mode == "User ID":
+            uid_val = st.number_input(
+                "User ID", min_value=0, max_value=s["n_users"] - 1,
+                value=st.session_state["emb_uid"], key="emb_uid"
+            )
+            if elapsed_us_val is not None:
+                st.metric("⚡ FAISS search time", f"{elapsed_us_val:.0f} μs")
+            if recs_val:
+                st.markdown("**Top 10 recommendations (★ on map):**")
+                for rank, (idx, score) in enumerate(recs_val, 1):
+                    title = data["item_info"].get(idx, {}).get("title", "Unknown")[:40]
+                    st.markdown(
+                        f"<div style='font-size:0.82rem;color:#cdd6f4;"
+                        f"padding:3px 0;border-bottom:1px solid #313244;'>"
+                        f"<b>{rank}.</b> {title}</div>",
+                        unsafe_allow_html=True,
+                    )
+        else:
+            search = st.text_input(
+                "Game title:", value=st.session_state["emb_search"]
+            )
+            if search != st.session_state["emb_search"]:
+                st.session_state["emb_search"] = search
+                st.session_state["emb_seed_id"] = None
+
+            if search:
+                matches = [
+                    (i, data["item_info"].get(i, {}).get("title", ""))
+                    for i in range(s["n_items"])
+                    if search.lower() in
+                       data["item_info"].get(i, {}).get("title", "").lower()
+                ][:5]
+                if matches:
+                    sel = st.selectbox(
+                        "Select:", [i for i, _ in matches],
+                        format_func=lambda x: data["item_info"].get(x, {}).get("title", "")[:50],
+                    )
+                    # Update seed_id for next render's pre-computation
+                    st.session_state["emb_seed_id"] = sel
+                    if elapsed_us_val is not None:
+                        st.metric("⚡ FAISS search time", f"{elapsed_us_val:.0f} μs")
+                    if recs_val:
+                        st.markdown("**Similar items (★ on map):**")
+                        for rank, (idx, score) in enumerate(recs_val, 1):
+                            title = data["item_info"].get(idx, {}).get("title", "")[:40]
+                            st.markdown(
+                                f"<div style='font-size:0.82rem;color:#cdd6f4;"
+                                f"padding:3px 0;border-bottom:1px solid #313244;'>"
+                                f"<b>{rank}.</b> {title}</div>",
+                                unsafe_allow_html=True,
+                            )
+                    else:
+                        st.info("Select a game above to see recommendations on the map.")
+                elif search:
+                    st.info("No matching titles found. Try 'Dark Souls', 'FIFA', or 'Call of Duty'.")
 
 
 # ============================================================
